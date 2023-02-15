@@ -30,4 +30,14 @@ I also created a billing alarm just to show that there are different ways of tra
 
 ## Homework Challenges
 
+### Using EventBridge to hookup Health Dashboard to SNS to send notifications
+
+As an added homework challenge I used EventBridge to hookup the health Dashboard which would then send me a notification whenever there is a health event on my primary location. 
+I used the [AWS CloudWatch Events Guide](https://docs.aws.amazon.com/health/latest/ug/cloudwatch-events-health.html) to create an EventrBridge rule and the used SNS as the medium to which I would receive the notifications.
+![EventBridge Health Dashboard Rules](assets/Week_0_Service_Health_Rule.PNG)
+
+I then had to create an SNS topic and subscribe in order to receice any notifications whenever there is any changes to the dashboard.
+![SNS subscription to the Health Dashboard](assets/Week_0_Health_SNS_Sub.PNG)
+
+
 

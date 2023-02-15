@@ -24,4 +24,10 @@ I also created a billing alarm just to show that there are different ways of tra
 ![Crudder Logical Design](assets/Week_0_Crudder%20-%20Conceptual%20Diagram.png)
 [Lucid Logical Design Chart](https://lucid.app/lucidchart/e96ce944-5723-4acf-9a0a-125b96c06477/edit?viewport_loc=-4450%2C59%2C2404%2C1174%2C0_0&invitationId=inv_f2342884-d436-479b-b8db-dc83ec828d76)
 
+### Recreate Logical Architectural Design
+![Crudder Architectural Design](assets/Week_0_Crudder%20Architecture%20Diagram.png)
+[Lucid Architectural Design Chart](https://lucid.app/lucidchart/d7fd98be-89b3-4a0e-8d29-f9348ea2b130/edit?view_items=yT_wtKpkI4to&invitationId=inv_cd0daa28-6bc0-4ef7-992e-9dc0ac126b1d)
+
 ## Homework Challenges
+
+

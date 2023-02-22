@@ -8,7 +8,7 @@ class NotificationsActivities:
       'message': 'I will get the One Piece!',
       'created_at': (now - timedelta(days=2)).isoformat(),
       'expires_at': (now + timedelta(days=5)).isoformat(),
-      'likes_count': 15,
+      'likes_count': 1500,
       'replies_count': 1,
       'reposts_count': 0,
       'replies': [{

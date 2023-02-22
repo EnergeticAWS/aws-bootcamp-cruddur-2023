@@ -47,6 +47,75 @@ Make sure you unlock the 4567 port to the public as well as open the link for 45
 
 ![Running container](assets/Week_01_Running_Container.PNG)
 
+## Containerize Frontend
+
+### Run NPM Install
+
+We have to run NPM Install before building the container since it needs to copy the contents of node_modules
+
+```
+cd frontend-react-js
+npm i
+```
+While that is running we go ahead and create a new `Dockerfile` in the frontend directory and then paste in the commands below
+
+
+Create a file here: `frontend-react-js/Dockerfile`
+
+```dockerfile
+FROM node:16.18
+
+ENV PORT=3000
+
+COPY . /frontend-react-js
+WORKDIR /frontend-react-js
+RUN npm install
+EXPOSE ${PORT}
+CMD ["npm", "start"]
+```
+## Multiple Containers
+In order to run multiple containers we are going to create a Docker-compose file which will enable us to run multiple containers instead of having to do it manually.
+
+### Create a docker-compose file
+
+Create `docker-compose.yml` at the root of your project.
+
+```yaml
+version: "3.8"
+services:
+  backend-flask:
+    environment:
+      FRONTEND_URL: "https://3000-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}"
+      BACKEND_URL: "https://4567-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}"
+    build: ./backend-flask
+    ports:
+      - "4567:4567"
+    volumes:
+      - ./backend-flask:/backend-flask
+  frontend-react-js:
+    environment:
+      REACT_APP_BACKEND_URL: "https://4567-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}"
+    build: ./frontend-react-js
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend-react-js:/frontend-react-js
+
+# the name flag is a hack to change the default prepend folder
+# name when outputting the image names
+networks: 
+  internal-network:
+    driver: bridge
+    name: cruddur
+```
+
+In order to test it we can right-click on the docker-compose on the right and select up and it should configure the environment variables for us as well as install all the dependancies we need.
+
+On the ports tab we should see that both `port 3000 and port 4567` are highlited and that they are both open to the public.
+![Ports open to public](assets/Week_1_Open_ports.PNG)
+
+We then click on the address associated with the port 3000 and it should open the home page of our cruddur app
+![Cruddue App ](assets/Week_1_Cruddur_APP.PNG)
 
 
 

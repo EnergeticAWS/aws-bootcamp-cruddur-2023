@@ -91,7 +91,7 @@ I created a new json file named `xray.json` under the aws direcotry and pasted i
       "Priority": 9000,
       "FixedRate": 0.1,
       "ReservoirSize": 5,
-      "ServiceName": "Cruddur",
+      "ServiceName": "backend-flask",
       "ServiceType": "*",
       "Host": "*",
       "HTTPMethod": "*",
@@ -99,4 +99,35 @@ I created a new json file named `xray.json` under the aws direcotry and pasted i
       "Version": 1
   }
 }
+```
+
+### Creaating a group
+On the aws cli terminal on the backend-flask directory.
+```
+FLASK_ADDRESS="https://4567-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}"
+aws xray create-group \
+   --group-name "Cruddur" \
+   --filter-expression "service(\"backend-flask\")"
+```
+On the AWS console on the xray groups menu I saw my newly created group
+
+![xray group](assets/Week_2_xray_group.PNG)
+
+### Adding Deamon Service to Docker Compose
+```
+  xray-daemon:
+    image: "amazon/aws-xray-daemon"
+    environment:
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AWS_REGION: "us-east-1"
+    command:
+      - "xray -o -b xray-daemon:2000"
+    ports:
+      - 2000:2000/udp
+```
+Next I added these two env vars to our backend-flask in our `docker-compose.yml` file
+```
+AWS_XRAY_URL: "*4567-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}*"
+AWS_XRAY_DAEMON_ADDRESS: "xray-daemon:2000"
 ```

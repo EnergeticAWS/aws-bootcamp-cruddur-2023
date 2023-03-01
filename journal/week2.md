@@ -46,3 +46,57 @@ FlaskInstrumentor().instrument_app(app)
 RequestsInstrumentor().instrument()
 ```
 ![automatic instrumentation](assets/Week_2_automatic_instrumentation.PNG)
+
+### Hardcoding a span
+
+On the home_activities python file I included the following code:
+```
+from opentelemetry import trace
+
+tracer = trace.get_tracer("tracer.name.here")
+
+```
+![acquiring tracer](assets/Week_2_acquirng_tracer.PNG)
+
+### Creating spans
+
+`with tracer.start_as_current_span("http-handler"):`
+
+![creating spans](assets/Week_2_creating_spans.PNG)
+
+## Honeycomb
+
+Back in honeycomb on the recent traces I saw the newly created spans
+
+![recent_trace](assets/Week_2_recent_trace.PNG)
+
+## AWS xray
+```
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
+
+xray_url = os.getenv("AWS_XRAY_URL")
+xray_recorder.configure(service='Cruddur', dynamic_naming=xray_url)
+XRayMiddleware(app, xray_recorder)
+```
+![xray app.py code](assets/Week_2_xray_app_code.PNG)
+
+### Setting up sampling rules
+I created a new json file named `xray.json` under the aws direcotry and pasted in the code below
+```
+{
+  "SamplingRule": {
+      "RuleName": "Cruddur",
+      "ResourceARN": "*",
+      "Priority": 9000,
+      "FixedRate": 0.1,
+      "ReservoirSize": 5,
+      "ServiceName": "Cruddur",
+      "ServiceType": "*",
+      "Host": "*",
+      "HTTPMethod": "*",
+      "URLPath": "*",
+      "Version": 1
+  }
+}
+```

@@ -183,3 +183,21 @@ def data_home():
 On the AWS console on the Cloudwatch Logs 
 
 ![cloudwatch logs](assets/Week_2_cloudwatch_logs.PNG)
+
+### Rollbar
+Add to requirements.txt
+```
+blinker
+rollbar
+```
+Setting access token
+```
+export ROLLBAR_ACCESS_TOKEN=""
+gp env ROLLBAR_ACCESS_TOKEN=""
+```
+Import for Rollbar
+```
+import rollbar
+import rollbar.contrib.flask
+from flask import got_request_exception
+```

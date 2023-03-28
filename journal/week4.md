@@ -303,3 +303,104 @@ class Db:
 
 db = Db()
 ```
+### Connecting to RDS via Gitpod
+create an inbound rule for Postgres (5432) and provide the GITPOD ID.
+
+We'll get the security group rule id so we can easily modify it in the future from the terminal here in Gitpod.
+```
+export DB_SG_ID="****"
+gp env DB_SG_ID="****"
+export DB_SG_RULE_ID="****"
+gp env DB_SG_RULE_ID="****"
+```
+To update the security groups I can do this for access.
+```
+aws ec2 modify-security-group-rules \
+    --group-id $DB_SG_ID \
+    --security-group-rules "SecurityGroupRuleId=$DB_SG_RULE_ID,SecurityGroupRule={IpProtocol=tcp,FromPort=5432,ToPort=5432,CidrIpv4=$GITPOD_IP/32}"
+```
+### Testing remote access
+
+psql postgresql://root:huWFDz2Qv5478@cruddur-db-instance.czz1cuvepklc.us-east-1.rds.amazonaws.com:5432/cruddur
+update the URL for production use case
+
+export PROD_CONNECTION_URL="postgresql://root:huWFDz2Qv5478@cruddur-db-instance.czz1cuvepklc.us-east-1.rds.amazonaws.com:5432/cruddur"
+gp env PROD_CONNECTION_URL="postgresql://root:huWFDz2Qv5478@cruddur-db-instance.czz1cuvepklc.us-east-1.rds.amazonaws.com:5432/cruddur"
+
+## Setup Cognito post confirmation lambda
+I created a `cruddur-post-confirrmation.py` under `aws/json/lambdas` directory
+```
+import json
+import psycopg2
+import os
+
+def lambda_handler(event, context):
+    user = event['request']['userAttributes']
+    print('userAttributes')
+    print(user)
+
+    user_display_name  = user['name']
+    user_email         = user['email']
+    user_handle        = user['preferred_username']
+    user_cognito_id    = user['sub']
+    try:
+      print('entered-try')
+      sql = f"""
+         INSERT INTO public.users (
+            display_name, 
+            email,
+            handle, 
+            cognito_user_id
+        ) 
+        VALUES(
+            %(display_name)s,
+            %(email)s,
+            %(handle)s,
+            %(cognito_id)s
+        )
+      """
+      print('SQL Statement ----')
+      print(sql)
+      conn = psycopg2.connect(os.getenv('CONNECTION_URL'))
+      cur = conn.cursor()
+      params = {
+        'display_name': user_display_name,
+        'email': user_email,
+        'handle': user_handle,
+        'cognito_id': user_cognito_id
+      }
+      cur.execute(sql,params)
+      conn.commit() 
+
+    except (Exception, psycopg2.DatabaseError) as error:
+      print(error)
+    finally:
+      if conn is not None:
+          cur.close()
+          conn.close()
+          print('Database connection closed.')
+    return event
+ ```
+I used the same code on the AWS console after creating a lambda function named `cruddur-post-confirmation`
+
+I included a [lambda layer](https://github.com/jetbridge/psycopg2-lambda-layer) based from my location.
+Next was setting the environment variable `CONNECTION_URL	postgresql://cruddurroot:password@cruddur-db-instance.com:5432/cruddur`
+Next under permissions I created `AWSLambdaVPCAccessExecutionRole` policy
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:CreateNetworkInterface",
+                "ec2:DeleteNetworkInterface",
+                "ec2:DescribeInstances",
+                "ec2:AttachNetworkInterface"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```

@@ -240,5 +240,4 @@ response = dynamodb.query(**query_params)
 # print the items returned by the query
 print(json.dumps(response, sort_keys=True, indent=2))
 ```
-
- 
+### Implementing 

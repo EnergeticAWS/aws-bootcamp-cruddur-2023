@@ -87,6 +87,7 @@ cors = CORS(
   expose_headers='Authorization',
   methods="OPTIONS,GET,HEAD,POST"
 )
+
 # CloudWatch ~~~~~~~~
 # @app.after_request
 # def after_request(response):

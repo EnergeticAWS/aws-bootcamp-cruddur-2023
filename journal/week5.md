@@ -810,7 +810,191 @@ class CreateMessage:
       model['data'] = data
     return model
  ```
-  
+ ## Creating a new conversation
+ Under `App.js`
+```
+{
+    path: "/messages/new/:handle",
+    element: <MessageGroupNewPage />
+  },
+```
+I added `import MessageGroupNewPage from './pages/MessageGroupNewPage';` to the top of the page as well.
+
+Under `/src/pages/` I created a `MessageGroupNewPage.js`
+```
+import './MessageGroupPage.css';
+import React from "react";
+import { useParams } from 'react-router-dom';
+
+import DesktopNavigation  from '../components/DesktopNavigation';
+import MessageGroupFeed from '../components/MessageGroupFeed';
+import MessagesFeed from '../components/MessageFeed';
+import MessagesForm from '../components/MessageForm';
+import checkAuth from '../lib/CheckAuth';
+
+export default function MessageGroupPage() {
+  const [otherUser, setOtherUser] = React.useState([]);
+  const [messageGroups, setMessageGroups] = React.useState([]);
+  const [messages, setMessages] = React.useState([]);
+  const [popped, setPopped] = React.useState([]);
+  const [user, setUser] = React.useState(null);
+  const dataFetchedRef = React.useRef(false);
+  const params = useParams();
+
+  const loadUserShortData = async () => {
+    try {
+      const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/users/@${params.handle}/short`
+      const res = await fetch(backend_url, {
+        method: "GET"
+      });
+      let resJson = await res.json();
+      if (res.status === 200) {
+        console.log('other user:',resJson)
+        setOtherUser(resJson)
+      } else {
+        console.log(res)
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };  
+
+  const loadMessageGroupsData = async () => {
+    try {
+      const backend_url = `${process.env.REACT_APP_BACKEND_URL}/api/message_groups`
+      const res = await fetch(backend_url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`
+        },
+        method: "GET"
+      });
+      let resJson = await res.json();
+      if (res.status === 200) {
+        setMessageGroups(resJson)
+      } else {
+        console.log(res)
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };  
+
+  React.useEffect(()=>{
+    //prevents double call
+    if (dataFetchedRef.current) return;
+    dataFetchedRef.current = true;
+
+    loadMessageGroupsData();
+    loadUserShortData();
+    checkAuth(setUser);
+  }, [])
+  return (
+    <article>
+      <DesktopNavigation user={user} active={'home'} setPopped={setPopped} />
+      <section className='message_groups'>
+        <MessageGroupFeed otherUser={otherUser} message_groups={messageGroups} />
+      </section>
+      <div className='content messages'>
+        <MessagesFeed messages={messages} />
+        <MessagesForm [New Londo Message](etMessages={setMessages} />)
+      </div>
+    </article>
+  );
+}
+```
+Next I created another user `Londo` under the seed.sql under `/db/seed.sql`
+`('Londo Mollari','lmollari@centari.com' ,'londo' ,'MOCK');`
+
+Testing to see if I can input a message inside the conversation that was already taking place
+![Testing Conversation Message](assets/Week_5_Message_1.PNG)
+Another Test using the new Londo handle user
+![New Londo Message](assets/Week_5_New_Londo.PNG)
+
+##Dynamodb Streams
+I created a table on DynamoDB called cruddur-messages with `New Image` attribute enabled.
+![DynamoDB Table](assets/Week_5_AWS_Cruddur.PNG)
+I also created a VPC gateway endpoint as well as a Lambda function called `cruddur-messaging-stream` with the code below:
+```
+import json
+import boto3
+from boto3.dynamodb.conditions import Key, Attr
+
+dynamodb = boto3.resource(
+ 'dynamodb',
+ region_name='us-east-1',
+ endpoint_url="http://dynamodb.us-east-1.amazonaws.com"
+)
+
+def lambda_handler(event, context):
+  print('event-data',event)
+
+  eventName = event['Records'][0]['eventName']
+  if (eventName == 'REMOVE'):
+    print("skip REMOVE event")
+    return
+  pk = event['Records'][0]['dynamodb']['Keys']['pk']['S']
+  sk = event['Records'][0]['dynamodb']['Keys']['sk']['S']
+  if pk.startswith('MSG#'):
+    group_uuid = pk.replace("MSG#","")
+    message = event['Records'][0]['dynamodb']['NewImage']['message']['S']
+    print("GRUP ===>",group_uuid,message)
+    
+    table_name = 'cruddur-messages'
+    index_name = 'message-group-sk-index'
+    table = dynamodb.Table(table_name)
+    data = table.query(
+      IndexName=index_name,
+      KeyConditionExpression=Key('message_group_uuid').eq(group_uuid)
+    )
+    print("RESP ===>",data['Items'])
+    
+    # recreate the message group rows with new SK value
+    for i in data['Items']:
+      delete_item = table.delete_item(Key={'pk': i['pk'], 'sk': i['sk']})
+      print("DELETE ===>",delete_item)
+      
+      response = table.put_item(
+        Item={
+          'pk': i['pk'],
+          'sk': sk,
+          'message_group_uuid':i['message_group_uuid'],
+          'message':message,
+          'user_display_name': i['user_display_name'],
+          'user_handle': i['user_handle'],
+          'user_uuid': i['user_uuid']
+        }
+      )
+      print("CREATE ===>",response)
+  ```
+On the created Lambda I added these 2 permissions `AWSLambdaInvocation-DynamoDB` which AWS provides as well as a custom one named `cruddur-messaging-stream-dynamodb` with the following json
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:PutItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:Query"
+            ],
+            "Resource": [
+                "arn:aws:dynamodb:us-east-1:651587800024:table/cruddur-messages/index/message-group-sk-index",
+                "arn:aws:dynamodb:us-east-1:651587800024:table/cruddur-messages"
+            ]
+        }
+    ]
+}
+```
+I then added a trigger back on the DynamoDb table 
+![Dynamodb trigger](assets/Week_5_Dynamo_Trigger.PNG)
+
+On the docker compose file I commented out the local dynamodb connection and ran the container once more. I then wrote a message to Bayko just to see if it works
+![Message to Bayko](assets/Week_5_New_Bayko.PNG)
+
+This has been the toughest week yet :( but I have learnt so much especially with how to troubleshoot errors as I had so many that needed to be fixed but I am glad that I can finally start with week 6.
+
   
 
  

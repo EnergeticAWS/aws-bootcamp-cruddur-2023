@@ -236,6 +236,224 @@ Under `aws/task-definitions` create a `backend-flask.json` file
   ]
 }
 ```
+Under `aws/task-definitions` create a `front-flask.json` file
+```
+{
+  "family": "frontend-react-js",
+  "executionRoleArn": "arn:aws:iam::387543059434:role/CruddurServiceExecutionRole",
+  "taskRoleArn": "arn:aws:iam::387543059434:role/CruddurTaskRole",
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512",
+  "requiresCompatibilities": [ 
+    "FARGATE" 
+  ],
+  "containerDefinitions": [
+    {
+      "name": "xray",
+      "image": "public.ecr.aws/xray/aws-xray-daemon" ,
+      "essential": true,
+      "user": "1337",
+      "portMappings": [
+        {
+          "name": "xray",
+          "containerPort": 2000,
+          "protocol": "udp"
+        }
+      ]
+    },
+    {
+      "name": "frontend-react-js",
+      "image": "387543059434.dkr.ecr.ca-central-1.amazonaws.com/frontend-react-js",
+      "essential": true,
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:3000 || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3
+      },
+      "portMappings": [
+        {
+          "name": "frontend-react-js",
+          "containerPort": 3000,
+          "protocol": "tcp", 
+          "appProtocol": "http"
+        }
+      ],
+
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+            "awslogs-group": "cruddur",
+            "awslogs-region": "ca-central-1",
+            "awslogs-stream-prefix": "frontend-react-js"
+        }
+      }
+    }
+  ]
+}
+```
+### Frontend-react prod
+```
+# Base Image ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+FROM node:16.18 AS build
+
+ARG REACT_APP_BACKEND_URL
+ARG REACT_APP_AWS_PROJECT_REGION
+ARG REACT_APP_AWS_COGNITO_REGION
+ARG REACT_APP_AWS_USER_POOLS_ID
+ARG REACT_APP_CLIENT_ID
+
+ENV REACT_APP_BACKEND_URL=$REACT_APP_BACKEND_URL
+ENV REACT_APP_AWS_PROJECT_REGION=$REACT_APP_AWS_PROJECT_REGION
+ENV REACT_APP_AWS_COGNITO_REGION=$REACT_APP_AWS_COGNITO_REGION
+ENV REACT_APP_AWS_USER_POOLS_ID=$REACT_APP_AWS_USER_POOLS_ID
+ENV REACT_APP_CLIENT_ID=$REACT_APP_CLIENT_ID
+
+COPY . ./frontend-react-js
+WORKDIR /frontend-react-js
+RUN npm install
+RUN npm run build
+
+# New Base Image ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+FROM nginx:1.23.3-alpine
+
+# --from build is coming from the Base Image
+COPY --from=build /frontend-react-js/build /usr/share/nginx/html
+COPY --from=build /frontend-react-js/nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 3000
+```
+### NGINX configuration file
+```
+# Set the worker processes
+worker_processes 1;
+
+# Set the events module
+events {
+  worker_connections 1024;
+}
+
+# Set the http module
+http {
+  # Set the MIME types
+  include /etc/nginx/mime.types;
+  default_type application/octet-stream;
+
+  # Set the log format
+  log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+
+  # Set the access log
+  access_log  /var/log/nginx/access.log main;
+
+  # Set the error log
+  error_log /var/log/nginx/error.log;
+
+  # Set the server section
+  server {
+    # Set the listen port
+    listen 3000;
+
+    # Set the root directory for the app
+    root /usr/share/nginx/html;
+
+    # Set the default file to serve
+    index index.html;
+
+    location / {
+        # First attempt to serve request as file, then
+        # as directory, then fall back to redirecting to index.html
+        try_files $uri $uri/ $uri.html /index.html;
+    }
+
+    # Set the error page
+    error_page  404 /404.html;
+    location = /404.html {
+      internal;
+    }
+
+    # Set the error page for 500 errors
+    error_page  500 502 503 504  /50x.html;
+    location = /50x.html {
+      internal;
+    }
+  }
+}
+```
+### Frontend build image
+```
+docker build \
+--build-arg REACT_APP_BACKEND_URL="https://4567-$GITPOD_WORKSPACE_ID.$GITPOD_WORKSPACE_CLUSTER_HOST" \
+--build-arg REACT_APP_AWS_PROJECT_REGION="$AWS_DEFAULT_REGION" \
+--build-arg REACT_APP_AWS_COGNITO_REGION="$AWS_DEFAULT_REGION" \
+--build-arg REACT_APP_AWS_USER_POOLS_ID="ca-central-1_CQ4wDfnwc" \
+--build-arg REACT_APP_CLIENT_ID="5b6ro31g97urk767adrbrdj1g5" \
+-t frontend-react-js \
+-f Dockerfile.prod \
+.
+```
+Create Repo
+```
+aws ecr create-repository \
+  --repository-name frontend-react-js \
+  --image-tag-mutability MUTABLE
+```
+Set URL
+```
+export ECR_FRONTEND_REACT_URL="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/frontend-react-js"
+echo $ECR_FRONTEND_REACT_URL
+```
+Tag Image
+`docker tag frontend-react-js:latest $ECR_FRONTEND_REACT_URL:latest`
+
+Push Image
+`docker push $ECR_FRONTEND_REACT_URL:latest`
+Service frontend json
+`service-frontend-react-js.json`
+```sh
+{
+  "cluster": "cruddur",
+  "launchType": "FARGATE",
+  "desiredCount": 1,
+  "enableECSManagedTags": true,
+  "enableExecuteCommand": true,
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "assignPublicIp": "ENABLED",
+      "securityGroups": [
+        "sg-04bdc8d5443cc8283"
+      ],
+      "subnets": [
+        "subnet-0462b87709683ccaa",
+        "subnet-066a53dd88d557e05",
+        "subnet-021a6adafb79249e3"
+      ]
+    }
+  },
+  "propagateTags": "SERVICE",
+  "serviceName": "frontend-react-js",
+  "taskDefinition": "frontend-react-js",
+  "serviceConnectConfiguration": {
+    "enabled": true,
+    "namespace": "cruddur",
+    "services": [
+      {
+        "portName": "frontend-react-js",
+        "discoveryName": "frontend-react-js",
+        "clientAliases": [{"port": 3000}]
+      }
+    ]
+  }
+}
+```
+Register Task Defintion
+`aws ecs register-task-definition --cli-input-json file://aws/task-definitions/frontend-react-js.json`
+
 ### Register Task Defintion
 `aws ecs register-task-definition --cli-input-json file://aws/task-definitions/backend-flask.json`
 
@@ -257,3 +475,15 @@ aws ec2 authorize-security-group-ingress \
 ```
 ### Create Services
 `aws ecs create-service --cli-input-json file://aws/json/service-backend-flask.json `
+`aws ecs create-service --cli-input-json file://aws/json/service-frontend-react-js.json`
+
+## Load Balancer
+```sh
+"loadBalancers": [
+      {
+          "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:651587800024:targetgroup/cruddur-backend-flask-tg/62c18060dd946e3d",
+          "containerName": "backend-flask",
+          "containerPort": 4567
+      }
+    ],
+```

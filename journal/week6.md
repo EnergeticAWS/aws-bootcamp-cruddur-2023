@@ -255,3 +255,5 @@ aws ec2 authorize-security-group-ingress \
   --port 80 \
   --cidr 0.0.0.0/0
 ```
+### Create Services
+`aws ecs create-service --cli-input-json file://aws/json/service-backend-flask.json `

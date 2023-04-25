@@ -2,7 +2,7 @@
 INSERT INTO public.users (display_name, email, handle, cognito_user_id)
 VALUES
 
-  ('Energetic AWS','wilson8wade@gmail,com' , 'energeticaws' ,'edf7fc38-4129-47d2-9b10-6491b3e61e2d'),
+  ('Energetic AWS','jereaws+23@gmail.com' , 'energeticaws' ,'abae3b92-4f01-4c9e-855a-dfe0aee05b20'),
   ('Andrew Bayko','bayko@exampro.co' , 'bayko' ,'MOCK'),
   ('Londo Mollari','lmollari@centari.com' ,'londo' ,'MOCK');
   

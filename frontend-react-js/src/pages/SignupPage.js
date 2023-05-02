@@ -18,6 +18,9 @@ export default function SignupPage() {
   const onsubmit = async (event) => {
     event.preventDefault();
     setErrors('')
+    console.log('username',username)
+    console.log('email',email)
+    console.log('name',name)
     try {
       const { user } = await Auth.signUp({
         username: email,
@@ -28,7 +31,7 @@ export default function SignupPage() {
           preferred_username: username,
         },
         autoSignIn: { // optional - enables auto sign in after user is confirmed
-            enabled: true,
+          enabled: true,
         }
       });
       console.log(user);

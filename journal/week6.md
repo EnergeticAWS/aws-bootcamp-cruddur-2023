@@ -487,3 +487,19 @@ aws ec2 authorize-security-group-ingress \
       }
     ],
 ```
+![Frontend Tasks Healthy](assets/Week_6_Frontend_task.PNG)
+
+Then I used the ALB dns information to check if the site would be up.
+![ALB site](assets/Week_6_ALB.PNG)
+
+I still needed to load the data but for now I was happy that I managed to login successfully.
+## Creating Hosted Zones
+I already had my domain name registered elsewhere and I needed to move them over to AWS. On route 53 I created a new hosted zone and swapped the name servers from AWS to my domain registrar
+![Route 53 Hosted Zone](assets/Week_6_Route_53_Hosted_Zone.PNG)
+
+Next I set up the listerner as well as ALB rules for when you want to visit the naked domain or api.
+![ALB Rules](assets/Week_6_ALB_Rules.PNG)
+
+Next was fixing messaging in production as well as configuring container insights on the console.
+
+

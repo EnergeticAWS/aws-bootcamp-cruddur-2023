@@ -1,6 +1,5 @@
 import './HomeFeedPage.css';
 import React from "react";
-
 import DesktopNavigation  from 'components/DesktopNavigation';
 import DesktopSidebar     from 'components/DesktopSidebar';
 import ActivityFeed from 'components/ActivityFeed';
@@ -39,7 +38,7 @@ export default function HomeFeedPage() {
   };
 
 
-  
+  // check when the page loads if we are authenticated
   React.useEffect(()=>{
     //prevents double call
     if (dataFetchedRef.current) return;
@@ -53,7 +52,8 @@ export default function HomeFeedPage() {
     <article>
       <DesktopNavigation user={user} active={'home'} setPopped={setPopped} />
       <div className='content'>
-        <ActivityForm  
+        <ActivityForm
+          user_handle={user}  
           popped={popped}
           setPopped={setPopped} 
           setActivities={setActivities} 

@@ -63,6 +63,8 @@ createBucket(bucketName: string): s3.IBucket {
 }
 ```
 
+## Setting up cloudfront
+![Cloudfront Settings](assets/Week_8_Cloudfront.PNG)
 
  
 

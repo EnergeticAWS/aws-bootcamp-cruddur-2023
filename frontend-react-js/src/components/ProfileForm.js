@@ -8,12 +8,13 @@ export default function ProfileForm(props) {
   const [displayName, setDisplayName] = React.useState('');
 
   React.useEffect(()=>{
-    setBio(props.profile.bio || '');
+    console.log('useEffects',props)
+    setBio(props.profile.bio || "");
     setDisplayName(props.profile.display_name);
-  }, [props.profile])
+  }, [props.profile]);
 
   const s3uploadkey = async (extension)=> {
-    console.log('ext',extension)
+    console.log('ext in s3uploadkey',extension)
     try {
       const gateway_url = `${process.env.REACT_APP_API_GATEWAY_ENDPOINT_URL}/avatars/key_upload`
       await getAccessToken()
@@ -44,6 +45,7 @@ export default function ProfileForm(props) {
   const s3upload = async (event)=> {
     console.log('event',event)
     const file = event.target.files[0]
+    console.log('file',file)
     const filename = file.name
     const size = file.size
     const type = file.type
@@ -52,6 +54,7 @@ export default function ProfileForm(props) {
     const fileparts = filename.split('.')
     const extension = fileparts[fileparts.length-1]
     const presignedurl = await s3uploadkey(extension)
+    console.log('presignedurl: ',presignedurl)
     try {
       console.log('s3upload')
       const res = await fetch(presignedurl, {
@@ -85,7 +88,7 @@ export default function ProfileForm(props) {
         },
         body: JSON.stringify({
           bio: bio,
-          display_name: displayName
+          display_name: displayName,
         }),
       });
       let data = await res.json();
@@ -118,36 +121,27 @@ export default function ProfileForm(props) {
   if (props.popped === true) {
     return (
       <div className="popup_form_wrap profile_popup" onClick={close}>
-        <form 
-          className='profile_form popup_form'
-          onSubmit={onsubmit}
-        >
+        <form className="profile_form popup_form" onSubmit={onsubmit}>
           <div className="popup_heading">
             <div className="popup_title">Edit Profile</div>
-            <div className='submit'>
-              <button type='submit'>Save</button>
+            <div className="submit">
+              <button type="submit">Save</button>
             </div>
           </div>
           <div className="popup_content">
-            
           <input type="file" name="avatarupload" onChange={s3upload} />
-
             <div className="field display_name">
               <label>Display Name</label>
               <input
                 type="text"
                 placeholder="Display Name"
                 value={displayName}
-                onChange={display_name_onchange} 
+                onChange={display_name_onchange}
               />
             </div>
             <div className="field bio">
               <label>Bio</label>
-              <textarea
-                placeholder="Bio"
-                value={bio}
-                onChange={bio_onchange} 
-              />
+              <textarea placeholder="Bio" value={bio} onChange={bio_onchange} />
             </div>
           </div>
         </form>

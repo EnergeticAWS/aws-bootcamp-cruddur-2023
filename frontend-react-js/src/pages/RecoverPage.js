@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { Auth } from 'aws-amplify';
 
 export default function RecoverPage() {
-  // Username is Eamil
+  // Username is Email
   const [username, setUsername] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [passwordAgain, setPasswordAgain] = React.useState('');
@@ -21,6 +21,7 @@ export default function RecoverPage() {
     .catch((err) => setErrors(err.message) );
     return false
   }
+
   const onsubmit_confirm_code = async (event) => {
     event.preventDefault();
     setErrors('')

@@ -4,7 +4,7 @@ import EditProfileButton from '../components/EditProfileButton';
 import ProfileAvatar from 'components/ProfileAvatar'
 
 export default function ProfileHeading(props) {
-  const backgroundImage = 'url("https://assets.goldytalk.com/banners/banner.jpg")';
+  const backgroundImage = 'url("https://assets.goldytalk.com/avatars/banner.jpg")';
   const styles = {
     backgroundImage: backgroundImage,
     backgroundSize: 'cover',

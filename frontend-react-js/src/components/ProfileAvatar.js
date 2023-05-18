@@ -1,7 +1,7 @@
 import './ProfileAvatar.css';
 
 export default function ProfileAvatar(props) {
-  const backgroundImage = `url("https://assets.goldytalk.com/avatars/${props.id}.jpg")`;
+  const backgroundImage = `url("https://assets.goldytalk.com/avatars/data.jpg")`;
   const styles = {
     backgroundImage: backgroundImage,
     backgroundSize: 'cover',
